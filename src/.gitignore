@@ -1,0 +1,4 @@
+# Built files
+build/
+.idea/
+local.properties

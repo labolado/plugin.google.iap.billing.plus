@@ -1,0 +1,16 @@
+settings =
+{
+	orientation =
+	{
+		default = "portrait",
+		supported = { "portrait" }
+	},
+	android =
+	{
+	},
+	plugins =
+	{
+		-- key is the name passed to Lua's 'require()'
+		-- ["plugin.google.iap.v3"] = { publisherId = "com.coronalabs", },
+	},
+}

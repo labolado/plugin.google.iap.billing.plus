@@ -1,0 +1,74 @@
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion 29
+
+    defaultConfig {
+        minSdkVersion 15
+        targetSdkVersion 29
+        versionCode 1
+        versionName "1.0"
+    }
+}
+
+
+task exportPluginJar() {
+    group "Corona-dev"
+    dependsOn assemble
+    doLast {
+        copy {
+            from {
+                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                    include 'classes.jar'
+                }.singleFile
+            }
+            into "$buildDir/outputs"
+
+            File pluginManifestFile = file("src/main/AndroidManifest.xml")
+            if (pluginManifestFile.exists()) {
+                String manifestContents = pluginManifestFile.text
+                def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
+                String packageName = pluginManifestXml.@package.toString()
+                rename "classes.jar", "${packageName}.jar"
+            } else {
+                rename "classes.jar", "plugin.jar"
+            }
+            println("Extracted to : ${file("$buildDir/outputs")}")
+        }
+    }
+}
+
+task deployPluginToDirectory() {
+    group "Corona-dev"
+    dependsOn assemble
+    doLast {
+        copy {
+            from {
+                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                    include 'classes.jar'
+                }.singleFile
+            }
+            into "$buildDir/outputs/../../../../../plugins/2017.3105/android/"
+
+            File pluginManifestFile = file("src/main/AndroidManifest.xml")
+            if (pluginManifestFile.exists()) {
+                String manifestContents = pluginManifestFile.text
+                def pluginManifestXml = new XmlSlurper().parseText(manifestContents)
+                String packageName = pluginManifestXml.@package.toString()
+                rename "classes.jar", "${packageName}.jar"
+            } else {
+                rename "classes.jar", "plugin.jar"
+            }
+        }
+    }
+}
+
+assemble.finalizedBy(exportPluginJar)
+
+dependencies {
+    implementation ':Corona@aar'
+}
+
+dependencies {
+    implementation 'com.android.billingclient:billing:3.0.1'
+}

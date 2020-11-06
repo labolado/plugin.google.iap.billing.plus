@@ -1,0 +1,4 @@
+plugins/*.tgz
+*xcuser*
+.gradle/
+.DS_Store
