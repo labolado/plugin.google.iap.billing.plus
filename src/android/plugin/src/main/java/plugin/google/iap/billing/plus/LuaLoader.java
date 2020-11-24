@@ -200,8 +200,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 }
 
                 @Override
-                public void onBillingServiceDisconnected() {
+            public void onBillingServiceDisconnected() {
                     // ...
+                    fBillingClient.startConnection(this);
                 }
             });
         } else {
