@@ -71,4 +71,5 @@ dependencies {
 
 dependencies {
     implementation 'com.android.billingclient:billing:3.0.1'
+    implementation 'com.google.android.gms:play-services-base:17.2.1'
 }
