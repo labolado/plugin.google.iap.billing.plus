@@ -1,5 +1,7 @@
 package plugin.google.iap.billing.plus;
 
+import android.content.Context;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
 import com.android.billingclient.api.AcknowledgePurchaseParams;
@@ -23,6 +25,9 @@ import com.ansca.corona.CoronaRuntime;
 import com.ansca.corona.CoronaRuntimeTask;
 import com.ansca.corona.CoronaRuntimeTaskDispatcher;
 import com.ansca.corona.purchasing.StoreServices;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.naef.jnlua.JavaFunction;
 import com.naef.jnlua.LuaState;
 import com.naef.jnlua.LuaType;
@@ -56,6 +61,17 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         return "unknown";
     }
 
+    // public static boolean isPlayStoreInstalled(android.content.Context context){
+    //     GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context);
+        // try {
+        //     context.getPackageManager()
+        //             .getPackageInfo(GooglePlayServicesUtil.GOOGLE_PLAY_STORE_PACKAGE, 0);
+        //     return true;
+        // } catch (PackageManager.NameNotFoundException e) {
+        //     return false;
+        // }
+    // }
+
     private boolean initSuccessful() {
         return fBillingClient != null && fSetupSuccessful;
     }
@@ -77,7 +93,8 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 new ConsumePurchaseWrapper(),
                 new PurchaseSubscriptionWrapper(),
                 new FinishTransactionWrapper(),
-                new RestoreWrapper()
+                new RestoreWrapper(),
+                new CheckPlayServiceWrapper()
         };
 
         String libName = L.toString(1);
@@ -562,6 +579,13 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         return purchases;
     }
 
+    private int checkPlayService(LuaState L) {
+        Context context = CoronaEnvironment.getApplicationContext();
+        int result =  GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(context);
+        L.pushBoolean(result == ConnectionResult.SUCCESS);
+        return 1;
+    }
+
     private class InitWrapper implements NamedJavaFunction {
         @Override
         public String getName() {
@@ -643,6 +667,18 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         @Override
         public int invoke(LuaState L) {
             return restore(L);
+        }
+    }
+
+    private class CheckPlayServiceWrapper implements NamedJavaFunction {
+        @Override
+        public String getName() {
+            return "checkPlayService";
+        }
+
+        @Override
+        public int invoke(LuaState L) {
+            return checkPlayService(L);
         }
     }
 }
