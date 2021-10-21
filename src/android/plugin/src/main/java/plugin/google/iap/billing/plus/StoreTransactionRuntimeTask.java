@@ -80,7 +80,8 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                 L.pushString(fError.getDebugMessage());
                 L.setField(-2, "errorString");
             } else {
-                L.pushString(LuaLoader.GetPurchaseType(fPurchase.getSku()));
+                String sku = fPurchase.getSkus().isEmpty() ? "" : fPurchase.getSkus().get(0);
+                L.pushString(LuaLoader.GetPurchaseType(sku));
                 L.setField(-2, "type");
 
                 L.pushString(fPurchase.getOrderId());
@@ -89,7 +90,7 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                 L.pushString(fPurchase.getPackageName());
                 L.setField(-2, "packageName");
 
-                L.pushString(fPurchase.getSku());
+                L.pushString(sku);
                 L.setField(-2, "productIdentifier");
 
                 L.pushNumber(fPurchase.getPurchaseTime());

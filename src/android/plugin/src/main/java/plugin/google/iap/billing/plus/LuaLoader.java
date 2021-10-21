@@ -462,7 +462,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     }
                 });
             } else {
-                Log.i("Corona", "Product already being consumed, skipping it: " + purchase.getSku() + ". It is safe to ignore this message");
+                Log.i("Corona", "Product already being consumed, skipping it: " + purchase.getSkus() + ". It is safe to ignore this message");
             }
         }
 
@@ -495,7 +495,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                     });
                 }
             } else {
-                Log.i("Corona", "Purchase already being finished (acknowledged)" + purchase.getSku() + ". It is safe to ignore this message");
+                Log.i("Corona", "Purchase already being finished (acknowledged)" + purchase.getSkus() + ". It is safe to ignore this message");
             }
         }
 
@@ -563,7 +563,8 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         HashSet<Purchase> purchases = new HashSet<Purchase>();
         for (String sku : SKUs) {
             for (Purchase purchase : allPurchases) {
-                if (sku.equals(purchase.getSku())) {
+                // if (sku.equals(purchase.getSkus())) {
+                if (purchase.getSkus().contains(sku)) {
                     purchases.add(purchase);
                 }
             }
