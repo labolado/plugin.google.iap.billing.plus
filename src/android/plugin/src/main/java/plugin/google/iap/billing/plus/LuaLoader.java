@@ -49,6 +49,8 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     private String fLicenseKey;
     private BillingClient fBillingClient;
     private static final HashMap<String, SkuDetails> fCachedSKUDetails = new HashMap<String, SkuDetails>();
+    private static int fNumReconnect = 0;
+    private static final int RECONNECT_LIMIT = 3;
 
     private final HashSet<String> fConsumedPurchases = new HashSet<String>();
     private final HashSet<String> fAcknowledgedPurchases = new HashSet<String>();
@@ -219,7 +221,12 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
                 @Override
             public void onBillingServiceDisconnected() {
                     // ...
-                    fBillingClient.startConnection(this);
+                    if (fNumReconnect < RECONNECT_LIMIT) {
+                        fNumReconnect++;
+                        fBillingClient.startConnection(this);
+                    } else {
+                        fNumReconnect = 0;
+                    }
                 }
             });
         } else {
