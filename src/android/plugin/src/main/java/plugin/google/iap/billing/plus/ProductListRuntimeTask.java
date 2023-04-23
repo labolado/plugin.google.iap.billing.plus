@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.BillingResult;
-import com.android.billingclient.api.SkuDetails;
+import com.android.billingclient.api.ProductDetails;
 import com.ansca.corona.CoronaLua;
 import com.ansca.corona.CoronaRuntimeTask;
 import com.naef.jnlua.LuaState;
@@ -14,13 +14,13 @@ import java.util.List;
 
 public class ProductListRuntimeTask implements CoronaRuntimeTask {
 
-    private final List<SkuDetails> fInventory;
+    private final List<ProductDetails> fInventory;
     private final int fListener;
     private final BillingResult fResult;
     private final HashSet<String> fManagedProducts;
     private final HashSet<String> fSubscriptionProducts;
 
-    public ProductListRuntimeTask(List<SkuDetails> inventory, HashSet<String> managedProducts, HashSet<String> subscriptionProducts, BillingResult result, int listener) {
+    public ProductListRuntimeTask(List<ProductDetails> inventory, HashSet<String> managedProducts, HashSet<String> subscriptionProducts, BillingResult result, int listener) {
         fInventory = inventory;
         fListener = listener;
         fResult = result;
@@ -51,13 +51,13 @@ public class ProductListRuntimeTask implements CoronaRuntimeTask {
                 L.newTable();
                 count = 1;
 
-                for (SkuDetails details : fInventory) {
+                for (ProductDetails details : fInventory) {
                     L.newTable();
                     BillingUtils.PushSKUToLua(details, L, -1);
                     L.rawSet(-2, count);
                     count++;
-                    fManagedProducts.remove(details.getSku());
-                    fSubscriptionProducts.remove(details.getSku());
+                    fManagedProducts.remove(details.getProductId());
+                    fSubscriptionProducts.remove(details.getProductId());
                 }
                 L.setField(-2, "products");
 
