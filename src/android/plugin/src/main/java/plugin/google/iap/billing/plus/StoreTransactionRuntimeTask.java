@@ -21,8 +21,8 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
         fPurchase = purchase;
         fListener = listener;
         if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
-            fError = null;
             if (purchase != null) {
+                fError = null;
                 switch (purchase.getPurchaseState()) {
                     case Purchase.PurchaseState.PURCHASED:
                         fState = "purchased";
@@ -35,6 +35,7 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                         break;
                 }
             } else {
+                fError = result;
                 fState = "unknown";
             }
         } else {
@@ -80,7 +81,7 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                 L.pushString(fError.getDebugMessage());
                 L.setField(-2, "errorString");
             } else {
-                String sku = fPurchase.getSkus().isEmpty() ? "" : fPurchase.getSkus().get(0);
+                String sku = fPurchase.getProducts().isEmpty() ? "" : fPurchase.getProducts().get(0);
                 L.pushString(LuaLoader.GetPurchaseType(sku));
                 L.setField(-2, "type");
 
