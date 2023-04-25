@@ -2,6 +2,7 @@ package plugin.google.iap.billing.plus;
 
 import com.android.billingclient.api.BillingClient;
 import com.android.billingclient.api.ProductDetails;
+import com.android.billingclient.api.SkuDetails;
 import com.naef.jnlua.LuaState;
 
 import java.util.List;
@@ -106,5 +107,25 @@ public class BillingUtils {
         }
         // L.pushString(sku.getOriginalJson());
         // L.setField(tableIndex, "originalJson");
+    }
+
+    public static void PushSKUToLuaOld(SkuDetails sku, LuaState L, int tableIndex) {
+        tableIndex = normalizeIndex(L, tableIndex);
+        L.pushString(sku.getTitle());
+        L.setField(tableIndex, "title");
+        L.pushString(sku.getDescription());
+        L.setField(tableIndex, "description");
+        L.pushString(sku.getPrice());
+        L.setField(tableIndex, "localizedPrice");
+        L.pushString(sku.getSku());
+        L.setField(tableIndex, "productIdentifier");
+        L.pushString(sku.getType());
+        L.setField(tableIndex, "type");
+        L.pushString(String.valueOf(sku.getPriceAmountMicros()));
+        L.setField(tableIndex, "priceAmountMicros");
+        L.pushString(sku.getPriceCurrencyCode());
+        L.setField(tableIndex, "priceCurrencyCode");
+        L.pushString(sku.getOriginalJson());
+        L.setField(tableIndex, "originalJson");
     }
 }
