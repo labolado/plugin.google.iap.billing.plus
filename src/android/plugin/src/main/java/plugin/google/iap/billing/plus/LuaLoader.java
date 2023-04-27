@@ -49,11 +49,12 @@ import java.util.List;
 import plugin.google.iap.billing.plus.util.Security;
 
 @SuppressWarnings({"unused", "RedundantSuppression"})
-public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
+public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, BillingClientStateListener {
     private int fLibRef;
     private int fListener;
     private CoronaRuntimeTaskDispatcher fDispatcher;
     private boolean fSetupSuccessful;
+    private boolean fIsConnecting;
     private boolean fIsProductDetailSupported;
     private String fLicenseKey;
     private BillingClient fBillingClient;
@@ -90,7 +91,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     // }
 
     private boolean initSuccessful() {
-        return fBillingClient != null && fBillingClient.isReady() && fSetupSuccessful;
+        return fBillingClient != null && fSetupSuccessful;
     }
 
     /**
@@ -101,6 +102,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         fDispatcher = new CoronaRuntimeTaskDispatcher(L);
 
         fSetupSuccessful = false;
+        fIsConnecting = false;
         fIsProductDetailSupported = false;
 
         // Add functions to library
@@ -139,6 +141,30 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
         L.setField(-2, "target");
 
         return 1;
+    }
+
+    @Override
+    public void onBillingSetupFinished(@NonNull BillingResult billingResult) {
+        if (billingResult.getResponseCode() == BillingResponseCode.OK) {
+            fSetupSuccessful = true;
+        }
+        fIsConnecting = false;
+        BillingResult testResult = fBillingClient.isFeatureSupported(BillingClient.FeatureType.PRODUCT_DETAILS);
+        fIsProductDetailSupported = testResult.getResponseCode() == BillingResponseCode.OK;
+        Log.d("Corona", "isFeatureSupported: code = " + testResult.getResponseCode() + ", msg = " + testResult.getDebugMessage() );
+
+        if (fListener != CoronaLua.REFNIL) {
+            InitRuntimeTask task = new InitRuntimeTask(billingResult, fListener, fLibRef);
+            fDispatcher.send(task);
+        }
+    }
+
+    @Override
+    public void onBillingServiceDisconnected() {
+        fSetupSuccessful = false;
+        fIsConnecting = false;
+        connect(false);
+        Log.d("Corona", "Billing client disconnected.");
     }
 
     @Override
@@ -243,50 +269,36 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
             fListener = CoronaLua.newRef(L, listenerIndex);
         }
 
-        CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
-        if (activity != null) {
-            fBillingClient = BillingClient.newBuilder(activity).enablePendingPurchases().setListener(this).build();
-
-            fBillingClient.startConnection(new BillingClientStateListener() {
-                int listener;
-
-                {
-                    listener = fListener;
-                }
-
-                @Override
-                public void onBillingSetupFinished(BillingResult billingResult) {
-                    fSetupSuccessful = billingResult.getResponseCode() == BillingResponseCode.OK;
-                    BillingResult testResult = fBillingClient.isFeatureSupported(BillingClient.FeatureType.PRODUCT_DETAILS);
-                    fIsProductDetailSupported = testResult.getResponseCode() == BillingResponseCode.OK;
-                    Log.d("Corona", "isFeatureSupported: code = " + testResult.getResponseCode() + ", msg = " + testResult.getDebugMessage() );
-
-                    if (listener != CoronaLua.REFNIL) {
-                        InitRuntimeTask task = new InitRuntimeTask(billingResult, listener, fLibRef);// ProductListRuntimeTask(inv, managedProducts, finalSubscriptionProducts, result, listener);
-                        fDispatcher.send(task);
-                    }
-                    listener = CoronaLua.REFNIL;
-                }
-
-                @Override
-            public void onBillingServiceDisconnected() {
-                    // ...
-                    if (fNumReconnect < RECONNECT_LIMIT) {
-                        fNumReconnect++;
-                        fBillingClient.startConnection(this);
-                    } else {
-                        fNumReconnect = 0;
-                    }
-                }
-            });
-        } else {
-            fBillingClient = null;
-        }
+        connect(true);
 
         return 0;
     }
 
+    private void connect(boolean dispatchEventWhenIsAlreadyConnected) {
+        Log.d("Corona", "connect, isConnected:" + initSuccessful() + ", isConnecting:" + fIsConnecting);
+        if (!initSuccessful() && !fIsConnecting) {
+            CoronaActivity activity = CoronaEnvironment.getCoronaActivity();
+            if (activity != null) {
+                fIsConnecting = true;
+                if (fBillingClient == null) {
+                    fBillingClient = BillingClient.newBuilder(activity).enablePendingPurchases().setListener(this).build();
+                }
+                fBillingClient.startConnection(this);
+            } else {
+                Log.d("Corona", "Connect to play service error, activity is null");
+                fBillingClient = null;
+            }
+        } else {
+            if (dispatchEventWhenIsAlreadyConnected && initSuccessful() && !fIsConnecting && fListener != CoronaLua.REFNIL) {
+                BillingResult billingResult = BillingResult.newBuilder().setResponseCode(BillingResponseCode.OK).build();
+                InitRuntimeTask task = new InitRuntimeTask(billingResult, fListener, fLibRef);
+                fDispatcher.send(task);
+            }
+        }
+    }
+
     private int loadProducts(LuaState L) {
+        connect(false);
         if (fIsProductDetailSupported) {
             return loadProductsNew((L));
         } else {
@@ -443,6 +455,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int restore(LuaState L) {
+        connect(false);
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to restore products.");
             return 0;
@@ -534,6 +547,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int restoreSubscription(LuaState L) {
+        connect(false);
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to restore products.");
             return 0;
@@ -703,6 +717,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int purchaseSubscription(LuaState L) {
+        connect(false);
         if (fIsProductDetailSupported) {
             return purchaseTypeNew(L, BillingClient.ProductType.SUBS);
         } else {
@@ -712,6 +727,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int purchase(LuaState L) {
+        connect(false);
         if (fIsProductDetailSupported) {
             return purchaseTypeNew(L, BillingClient.ProductType.INAPP);
         } else {
@@ -721,6 +737,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int consumePurchase(LuaState L) {
+        connect(false);
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to consume products.");
             return 0;
@@ -765,6 +782,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener {
     }
 
     private int finishTransaction(LuaState L) {
+        connect(false);
         if (!initSuccessful()) {
             Log.w("Corona", "Please call init before trying to finishTransaction.");
             return 0;
