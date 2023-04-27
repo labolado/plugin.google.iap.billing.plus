@@ -163,7 +163,7 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
     public void onBillingServiceDisconnected() {
         fSetupSuccessful = false;
         fIsConnecting = false;
-        connect(false);
+        // connect(false);
         Log.d("Corona", "Billing client disconnected.");
     }
 
