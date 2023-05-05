@@ -29,6 +29,7 @@ import com.ansca.corona.CoronaActivity;
 import com.ansca.corona.CoronaEnvironment;
 import com.ansca.corona.CoronaLua;
 import com.ansca.corona.CoronaRuntime;
+import com.ansca.corona.CoronaRuntimeListener;
 import com.ansca.corona.CoronaRuntimeTask;
 import com.ansca.corona.CoronaRuntimeTaskDispatcher;
 import com.ansca.corona.purchasing.StoreServices;
@@ -45,11 +46,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 import plugin.google.iap.billing.plus.util.Security;
 
 @SuppressWarnings({"unused", "RedundantSuppression"})
-public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, BillingClientStateListener {
+public class LuaLoader implements JavaFunction, CoronaRuntimeListener, PurchasesUpdatedListener, BillingClientStateListener {
     private int fLibRef;
     private int fListener;
     private CoronaRuntimeTaskDispatcher fDispatcher;
@@ -95,6 +97,23 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
     }
 
     /**
+     * Creates a new Lua interface to this plugin.
+     * <p>
+     * Note that a new LuaLoader instance will not be created for every CoronaActivity instance.
+     * That is, only one instance of this class will be created for the lifetime of the application process.
+     * This gives a plugin the option to do operations in the background while the CoronaActivity is destroyed.
+     */
+    @SuppressWarnings("unused")
+    public LuaLoader() {
+        // Initialize member variables.
+        fListener = CoronaLua.REFNIL;
+
+        // Set up this plugin to listen for Corona runtime events to be received by methods
+        // onLoaded(), onStarted(), onSuspended(), onResumed(), and onExiting().
+        // CoronaEnvironment.addRuntimeListener(this);
+    }
+
+    /**
      * Warning! This method is not called on the main UI thread.
      */
     @Override
@@ -116,7 +135,9 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
                 new RestoreWrapper(),
                 new RestoreSubscriptionWrapper(),
                 new CheckPlayServiceWrapper(),
-                new CheckIfProductDetailSupportedWrapper()
+                new CheckIfProductDetailSupportedWrapper(),
+                new GetCachedProductDetailsWrapper(),
+                new TestWrapper()
         };
 
         String libName = L.toString(1);
@@ -199,35 +220,32 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
                     fDispatcher.send(new StoreTransactionRuntimeTask(purchase, "verificationFailed", fListener));
                 }
             }
-
-            fDispatcher.send(new CoronaRuntimeTask() {
-                @Override
-                public void executeUsing(CoronaRuntime coronaRuntime) {
-                    if (fListener == CoronaLua.REFNIL) {
-                        return;
-                    }
-                    LuaState L = coronaRuntime.getLuaState();
-                    try {
-                        CoronaLua.newEvent(L, "storeTransaction");
-                        L.newTable();
-
-                        L.pushString("restore");
-                        L.setField(-2, "type");
-
-                        L.pushString("restoreCompleted");
-                        L.setField(-2, "state");
-
-                        L.setField(-2, "transaction");
-
-                        CoronaLua.dispatchEvent(L, fListener, 0);
-                    } catch (Exception ex) {
-                        Log.e("Corona", "StoreTransactionRuntimeTask: dispatching Google IAP storeTransaction event", ex);
-                    }
-                }
-            });
-        } else {
-            fDispatcher.send(new StoreTransactionRuntimeTask(null, billingResult, fListener));
         }
+        fDispatcher.send(new CoronaRuntimeTask() {
+            @Override
+            public void executeUsing(CoronaRuntime coronaRuntime) {
+                if (fListener == CoronaLua.REFNIL) {
+                    return;
+                }
+                LuaState L = coronaRuntime.getLuaState();
+                try {
+                    CoronaLua.newEvent(L, "storeTransaction");
+                    L.newTable();
+
+                    L.pushString("restore");
+                    L.setField(-2, "type");
+
+                    L.pushString("restoreCompleted");
+                    L.setField(-2, "state");
+
+                    L.setField(-2, "transaction");
+
+                    CoronaLua.dispatchEvent(L, fListener, 0);
+                } catch (Exception ex) {
+                    Log.e("Corona", "StoreTransactionRuntimeTask: dispatching Google IAP storeTransaction event", ex);
+                }
+            }
+        });
     }
 
     private int init(LuaState L) {
@@ -466,82 +484,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
                 onRestoreUpdated(billingResult, list);
             }
         });
-
-        // final List<Purchase> allPurchases = new ArrayList<>();
-        // final BillingResult.Builder result = BillingResult.newBuilder().setResponseCode(BillingResponseCode.OK).setDebugMessage("OK");
-        // final BillingUtils.SynchronizedWaiter waiter = new BillingUtils.SynchronizedWaiter();
-        // PurchasesResponseListener purchasesResponseListener = new PurchasesResponseListener() {
-        //     @Override
-        //     public void onQueryPurchasesResponse(BillingResult billingResult, List<Purchase> list) {
-        //         if (billingResult.getResponseCode() != BillingResponseCode.OK && result.build().getResponseCode() == BillingResponseCode.OK) {
-        //             result.setResponseCode(billingResult.getResponseCode());
-        //             result.setDebugMessage(billingResult.getDebugMessage());
-        //         }
-        //         if (list != null) {
-        //             allPurchases.addAll(list);
-        //         }
-        //         waiter.Hit();
-        //     }
-        // };
-        // fBillingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.INAPP).build(), purchasesResponseListener);
-        // fBillingClient.queryPurchasesAsync(QueryPurchasesParams.newBuilder().setProductType(BillingClient.ProductType.SUBS).build(), purchasesResponseListener);
-        //
-        // int tasks = 2;
-        // waiter.Set(tasks, new Runnable() {
-        //     @Override
-        //     public void run() {
-        //         onRestoreUpdated(result.build(), allPurchases);
-        //     }
-        // });
-
-        // BillingResult.Builder res = BillingResult.newBuilder().setResponseCode(BillingResponseCode.OK);
-        // Purchase.PurchasesResult r;
-        // ArrayList<Purchase> purchases = new ArrayList<Purchase>();
-
-        // r = fBillingClient.queryPurchases(BillingClient.SkuType.SUBS);
-        // if (r.getResponseCode() != BillingResponseCode.OK && res.build().getResponseCode() == BillingResponseCode.OK) {
-        //     res.setResponseCode(r.getResponseCode());
-        //     res.setDebugMessage(r.getBillingResult().getDebugMessage());
-        // }
-        // if (r.getPurchasesList() != null) {
-        //     purchases.addAll(r.getPurchasesList());
-        // }
-
-        // r = fBillingClient.queryPurchases(BillingClient.SkuType.INAPP);
-        // if (r.getResponseCode() != BillingResponseCode.OK && res.build().getResponseCode() == BillingResponseCode.OK) {
-        //     res.setResponseCode(r.getResponseCode());
-        //     res.setDebugMessage(r.getBillingResult().getDebugMessage());
-        // }
-        // if (r.getPurchasesList() != null) {
-        //     purchases.addAll(r.getPurchasesList());
-        // }
-
-        // onRestoreUpdated(res.build(), res.build().getResponseCode() == BillingResponseCode.OK ? purchases : null);
-        // fDispatcher.send(new CoronaRuntimeTask() {
-        //     @Override
-        //     public void executeUsing(CoronaRuntime coronaRuntime) {
-        //         if (fListener == CoronaLua.REFNIL) {
-        //             return;
-        //         }
-        //         LuaState L = coronaRuntime.getLuaState();
-        //         try {
-        //             CoronaLua.newEvent(L, "storeTransaction");
-        //             L.newTable();
-        //
-        //             L.pushString("restore");
-        //             L.setField(-2, "type");
-        //
-        //             L.pushString("restoreCompleted");
-        //             L.setField(-2, "state");
-        //
-        //             L.setField(-2, "transaction");
-        //
-        //             CoronaLua.dispatchEvent(L, fListener, 0);
-        //         } catch (Exception ex) {
-        //             Log.e("Corona", "StoreTransactionRuntimeTask: dispatching Google IAP storeTransaction event", ex);
-        //         }
-        //     }
-        // });
 
         return 0;
     }
@@ -904,37 +846,6 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
         t.put("productIds", SKUs);
         t.put("tokens", tokens);
         return t;
-
-        // List<Purchase> allPurchases = new ArrayList<Purchase>();
-        // if (!IAPsOnly) {
-        //     List<Purchase> subs = fBillingClient.queryPurchases(BillingClient.SkuType.SUBS).getPurchasesList();
-        //     if (subs != null) {
-        //         allPurchases.addAll(subs);
-        //     }
-        // }
-        // List<Purchase> IAPs = fBillingClient.queryPurchases(BillingClient.SkuType.INAPP).getPurchasesList();
-        // if (IAPs != null) {
-        //     allPurchases.addAll(IAPs);
-        // }
-
-        // HashSet<Purchase> purchases = new HashSet<Purchase>();
-        // for (String sku : SKUs) {
-        //     for (Purchase purchase : allPurchases) {
-        //         // if (sku.equals(purchase.getSkus())) {
-        //         if (purchase.getSkus().contains(sku)) {
-        //             purchases.add(purchase);
-        //         }
-        //     }
-        // }
-        // for (String token : tokens) {
-        //     for (Purchase purchase : allPurchases) {
-        //         if (token.equals(purchase.getPurchaseToken())) {
-        //             purchases.add(purchase);
-        //         }
-        //     }
-        // }
-
-        // return purchases;
     }
 
     // private int checkPlayService(LuaState L) {
@@ -973,6 +884,121 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
         L.pushString(errMsg);
 
         return 2;
+    }
+
+    private int getCachedProductDetails(LuaState L) {
+        int count = 1;
+        L.newTable();
+        for (Map.Entry <String, ProductDetails> entry: fCachedSKUDetails.entrySet()) {
+            L.newTable();
+            BillingUtils.PushSKUToLua(entry.getValue(), L, -1);
+            // L.setField(-2, entry.getKey());
+            L.rawSet(-2, count);
+            count++;
+        }
+        for (Map.Entry <String, SkuDetails> entry: fCachedSKUDetailsOld.entrySet()) {
+            L.newTable();
+            BillingUtils.PushSKUToLuaOld(entry.getValue(), L, -1);
+            L.rawSet(-2, count);
+            count++;
+        }
+
+        return 1;
+    }
+
+    private int test (LuaState L) {
+        int managedProductsTableIndex = 1;
+        int listenerIndex = 2;
+
+        final List<QueryProductDetailsParams.Product> productList = new ArrayList<>();
+
+        final HashSet<String> managedProducts = new HashSet<String>();
+        if (L.isTable(managedProductsTableIndex)) {
+            int managedProductsLength = L.length(managedProductsTableIndex);
+            for (int i = 1; i <= managedProductsLength; i++) {
+                L.rawGet(managedProductsTableIndex, i);
+                if (L.type(-1) == LuaType.STRING) {
+                    String id = L.toString(-1);
+                    managedProducts.add(id);
+                    productList.add(QueryProductDetailsParams.Product.newBuilder()
+                            .setProductType(BillingClient.ProductType.INAPP)
+                            .setProductId(id).build());
+                }
+                L.pop(1);
+            }
+        } else {
+            Log.e("Corona", "Missing product table to store.loadProducts");
+        }
+
+        final HashSet<String> subscriptionProducts = new HashSet<String>();
+        if (!CoronaLua.isListener(L, listenerIndex, "productList") && L.isTable(listenerIndex)) {
+            int subscriptionProductsLength = L.length(listenerIndex);
+            for (int i = 1; i <= subscriptionProductsLength; i++) {
+                L.rawGet(listenerIndex, i);
+                if (L.type(-1) == LuaType.STRING) {
+                    String id = L.toString(-1);
+                    subscriptionProducts.add(id);
+                    productList.add(QueryProductDetailsParams.Product.newBuilder()
+                            .setProductType(BillingClient.ProductType.SUBS)
+                            .setProductId(id).build());
+                }
+                L.pop(1);
+            }
+            listenerIndex++;
+        }
+
+        final int listener = CoronaLua.isListener(L, listenerIndex, "productList") ? CoronaLua.newRef(L, listenerIndex) : CoronaLua.REFNIL;
+
+        QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
+                .setProductList(productList)
+                .build();
+        fBillingClient.queryProductDetailsAsync(params, new ProductDetailsResponseListener() {
+            public void onProductDetailsResponse(BillingResult billingResult, List<ProductDetails> productDetailsList) {
+                if (productDetailsList != null) {
+                    // BillingUtils.PushProductDetailsListToLua(productDetailsList, L);
+                    // Process the result
+                    for (ProductDetails details : productDetailsList) {
+                        fCachedSKUDetails.put(details.getProductId(), details);
+                    }
+                    fDispatcher.send(new ProductListRuntimeTask(productDetailsList, managedProducts, subscriptionProducts, billingResult, listener));
+                }
+            }
+        });
+
+        return 0;
+    }
+
+    @Override
+    public void onLoaded(CoronaRuntime runtime) {
+        Log.d("Corona", "Google billing plugin onLoaded");
+    }
+
+    @Override
+    public void onStarted(CoronaRuntime runtime) {
+        Log.d("Corona", "Google billing plugin onStarted");
+    }
+
+    @Override
+    public void onSuspended(CoronaRuntime runtime) {
+        Log.d("Corona", "Google billing plugin onSuspended");
+    }
+
+    @Override
+    public void onResumed(CoronaRuntime runtime) {
+        Log.d("Corona", "Google billing plugin onResumed");
+    }
+
+    @Override
+    public void onExiting(CoronaRuntime runtime) {
+        CoronaLua.deleteRef( runtime.getLuaState(), fListener );
+        fListener = CoronaLua.REFNIL;
+        if (fBillingClient != null) {
+            fBillingClient.endConnection();
+            fBillingClient = null;
+        }
+        fIsConnecting = false;
+        fSetupSuccessful = false;
+        Log.d("Corona", "Google billing plugin onExiting");
     }
 
     private class InitWrapper implements NamedJavaFunction {
@@ -1091,6 +1117,28 @@ public class LuaLoader implements JavaFunction, PurchasesUpdatedListener, Billin
         @Override
         public int invoke(LuaState L) {
             return checkIfProductDetailSupported(L);
+        }
+    }
+
+    private class TestWrapper implements NamedJavaFunction {
+        @Override
+        public String getName() {
+            return "test";
+        }
+        @Override
+        public int invoke(LuaState L) {
+            return test(L);
+        }
+    }
+
+    private class GetCachedProductDetailsWrapper implements NamedJavaFunction {
+        @Override
+        public String getName() {
+            return "getCachedProductDetails";
+        }
+        @Override
+        public int invoke(LuaState L) {
+            return getCachedProductDetails(L);
         }
     }
 }
