@@ -863,10 +863,15 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
         // if(result != ConnectionResult.SUCCESS) {
         // }
         if(GoogleApiAvailability.getInstance().isUserResolvableError(result)) {
-            Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(activity, result, PLAY_SERVICES_RESOLUTION_REQUEST);
-            if (dialog != null) {
-                dialog.show();
-            }
+            activity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Dialog dialog = GoogleApiAvailability.getInstance().getErrorDialog(activity, result, PLAY_SERVICES_RESOLUTION_REQUEST);
+                    if (dialog != null) {
+                        dialog.show();
+                    }
+                }
+            });
         }
         L.pushBoolean(result == ConnectionResult.SUCCESS);
         return 1;
