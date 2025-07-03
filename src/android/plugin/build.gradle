@@ -1,17 +1,23 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 35
     defaultConfig {
+        namespace "plugin.google.iap.billing.plus"
+
         minSdkVersion 15
-        targetSdkVersion 31
+        targetSdkVersion 35
         versionCode 1
         versionName "1.0"
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 }
 
 
-task exportPluginJar() {
+tasks.register('exportPluginJar') {
     group "Corona-dev"
     dependsOn assemble
     doLast {
@@ -37,7 +43,7 @@ task exportPluginJar() {
     }
 }
 
-task deployPluginToDirectory() {
+tasks.register('deployPluginToDirectory') {
     group "Corona-dev"
     dependsOn assemble
     doLast {
@@ -69,6 +75,6 @@ dependencies {
 }
 
 dependencies {
-    implementation 'com.android.billingclient:billing:6.0.1'
+    implementation 'com.android.billingclient:billing:7.1.1'
     implementation 'com.google.android.gms:play-services-base:18.2.0'
 }

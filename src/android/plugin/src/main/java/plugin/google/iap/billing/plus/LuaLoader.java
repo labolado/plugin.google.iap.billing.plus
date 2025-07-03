@@ -41,7 +41,6 @@ import com.naef.jnlua.LuaType;
 import com.naef.jnlua.NamedJavaFunction;
 
 import java.util.ArrayList;
-import java.util.Dictionary;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -62,8 +61,8 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
     private BillingClient fBillingClient;
     private static final HashMap<String, ProductDetails> fCachedSKUDetails = new HashMap<>();
     private static final HashMap<String, SkuDetails> fCachedSKUDetailsOld = new HashMap<>();
-    private static int fNumReconnect = 0;
-    private static final int RECONNECT_LIMIT = 3;
+    // private static int fNumReconnect = 0;
+    // private static final int RECONNECT_LIMIT = 3;
     public static final int PLAY_SERVICES_RESOLUTION_REQUEST = 999;
 
     private final HashSet<String> fConsumedPurchases = new HashSet<String>();
@@ -105,6 +104,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
      */
     @SuppressWarnings("unused")
     public LuaLoader() {
+        Log.d("Corona", "Google billing plugin LuaLoader, fListener = " + fListener + " fBillingClient = " + fBillingClient);
         // Initialize member variables.
         fListener = CoronaLua.REFNIL;
 
@@ -118,6 +118,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
      */
     @Override
     public int invoke(LuaState L) {
+        Log.d("Corona", "Google billing plugin invoke, fListener = " + fListener + ", fBillingClient = " + fBillingClient);
         fDispatcher = new CoronaRuntimeTaskDispatcher(L);
 
         fSetupSuccessful = false;
@@ -375,7 +376,9 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
         QueryProductDetailsParams params = QueryProductDetailsParams.newBuilder()
                 .setProductList(productList)
                 .build();
+        Log.d("Corona", "Google billing plugin loadProductsNew listener = " + listener);
         fBillingClient.queryProductDetailsAsync(params, new ProductDetailsResponseListener() {
+            @Override
             public void onProductDetailsResponse(BillingResult billingResult, List<ProductDetails> productDetailsList) {
                 if (productDetailsList != null) {
                     // Process the result
@@ -427,7 +430,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
         }
 
         final int listener = CoronaLua.isListener(L, listenerIndex, "productList") ? CoronaLua.newRef(L, listenerIndex) : CoronaLua.REFNIL;
-        final List<SkuDetails> allSkus = new ArrayList<SkuDetails>();
+        final List<SkuDetails> allSkus = new ArrayList<>();
         final BillingResult.Builder result = BillingResult.newBuilder().setResponseCode(BillingResponseCode.OK);
 
         final BillingUtils.SynchronizedWaiter waiter = new BillingUtils.SynchronizedWaiter();
@@ -958,6 +961,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
                 .setProductList(productList)
                 .build();
         fBillingClient.queryProductDetailsAsync(params, new ProductDetailsResponseListener() {
+            @Override
             public void onProductDetailsResponse(BillingResult billingResult, List<ProductDetails> productDetailsList) {
                 if (productDetailsList != null) {
                     // BillingUtils.PushProductDetailsListToLua(productDetailsList, L);
@@ -975,7 +979,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
 
     @Override
     public void onLoaded(CoronaRuntime runtime) {
-        Log.d("Corona", "Google billing plugin onLoaded");
+        Log.d("Corona", "Google billing plugin onLoaded, fListener = " + fListener + ", fBillingClient = " + fBillingClient);
     }
 
     @Override
