@@ -52,9 +52,9 @@ public class Security {
      * and product ID of the purchase.
      *
      * Corona:
-     * Added a conditional that gives a pass to Google's prefab product IDs used for 
-     * static response testing of IAP. Specifically, the default version in IAP v3 
-     * would break when trying to invoke store.loadProducts() after purchasing an 
+     * Added a conditional that gives a pass to Google's prefab product IDs used for
+     * static response testing of IAP. Specifically, the default version in IAP v3
+     * would break when trying to invoke store.loadProducts() after purchasing an
      * android.test.purchased product. This fix is described at:
      * http://stackoverflow.com/questions/19732025/android-in-app-billing-purchase-verification-failed
      *

@@ -53,7 +53,7 @@ public class ProductListRuntimeTask implements CoronaRuntimeTask {
 
                 for (ProductDetails details : fInventory) {
                     L.newTable();
-                    BillingUtils.PushSKUToLua(details, L, -1);
+                    BillingUtils.PushDetailsToLua(details, L, -1);
                     L.rawSet(-2, count);
                     count++;
                     fManagedProducts.remove(details.getProductId());

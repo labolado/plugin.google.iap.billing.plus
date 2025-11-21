@@ -1,12 +1,11 @@
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 35
+    compileSdk 35
     defaultConfig {
         namespace "plugin.google.iap.billing.plus"
 
-        minSdkVersion 15
-        targetSdkVersion 35
+        minSdkVersion 21
         versionCode 1
         versionName "1.0"
     }
@@ -16,18 +15,18 @@ android {
     }
 }
 
-
+def buildDirectory = getLayout().getBuildDirectory().asFile.get()
 tasks.register('exportPluginJar') {
     group "Corona-dev"
     dependsOn assemble
     doLast {
         copy {
             from {
-                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                zipTree("$buildDirectory/outputs/aar/${project.name}-release.aar").matching {
                     include 'classes.jar'
                 }.singleFile
             }
-            into "$buildDir/outputs"
+            into "$buildDirectory/outputs"
 
             File pluginManifestFile = file("src/main/AndroidManifest.xml")
             if (pluginManifestFile.exists()) {
@@ -49,11 +48,11 @@ tasks.register('deployPluginToDirectory') {
     doLast {
         copy {
             from {
-                zipTree("$buildDir/outputs/aar/${project.name}-release.aar").matching {
+                zipTree("$buildDirectory/outputs/aar/${project.name}-release.aar").matching {
                     include 'classes.jar'
                 }.singleFile
             }
-            into "$buildDir/outputs/../../../../../plugins/2017.3105/android/"
+            into "$buildDirectory/outputs/../../../../../plugins/2017.3105/android/"
 
             File pluginManifestFile = file("src/main/AndroidManifest.xml")
             if (pluginManifestFile.exists()) {
@@ -72,9 +71,6 @@ assemble.finalizedBy(exportPluginJar)
 
 dependencies {
     implementation ':Corona@aar'
-}
-
-dependencies {
-    implementation 'com.android.billingclient:billing:7.1.1'
+    implementation 'com.android.billingclient:billing:8.0.0'
     implementation 'com.google.android.gms:play-services-base:18.2.0'
 }
