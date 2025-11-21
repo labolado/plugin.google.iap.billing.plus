@@ -16,10 +16,12 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
     private final int fListener;
     private final String fState;
     private final BillingResult fError;
+    private final String fProductType;
 
-    public StoreTransactionRuntimeTask(Purchase purchase, BillingResult result, int listener) {
+    public StoreTransactionRuntimeTask(Purchase purchase, BillingResult result, int listener, String productType) {
         fPurchase = purchase;
         fListener = listener;
+        fProductType = productType;
         if (result.getResponseCode() == BillingClient.BillingResponseCode.OK) {
             if (purchase != null) {
                 fError = null;
@@ -51,13 +53,13 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
         }
     }
 
-    public StoreTransactionRuntimeTask(Purchase purchase, String result, int listener) {
+    public StoreTransactionRuntimeTask(Purchase purchase, String result, int listener, String productType) {
         fPurchase = purchase;
         fListener = listener;
         fState = result;
         fError = null;
+        fProductType = productType;
     }
-
 
     @Override
     public void executeUsing(com.ansca.corona.CoronaRuntime runtime) {
@@ -82,11 +84,29 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
                 L.setField(-2, "errorString");
             } else {
                 String sku = fPurchase.getProducts().isEmpty() ? "" : fPurchase.getProducts().get(0);
-                L.pushString(LuaLoader.GetPurchaseType(sku));
+                String productType = LuaLoader.GetPurchaseType((sku));
+                if (productType.equals("unknown")) {
+                    productType = fProductType;
+                }
+                L.pushString(productType);
                 L.setField(-2, "type");
 
-                L.pushString(fPurchase.getOrderId());
+                int count2 = 1;
+                L.newTable();
+                for (String product : fPurchase.getProducts()) {
+                    L.pushString(product);
+                    L.rawSet(-2, count2);
+                    count2++;
+                }
+                L.setField(-2, "products");
+
+                String orderId = fPurchase.getOrderId();
+                if (orderId == null) orderId = "";
+                L.pushString(orderId);
                 L.setField(-2, "identifier");
+
+                L.pushInteger(fPurchase.getPurchaseState());
+                L.setField(-2, "purchaseState");
 
                 L.pushString(fPurchase.getPackageName());
                 L.setField(-2, "packageName");
@@ -108,6 +128,15 @@ public class StoreTransactionRuntimeTask implements CoronaRuntimeTask {
 
                 L.pushString(fPurchase.getSignature());
                 L.setField(-2, "signature");
+
+                L.pushBoolean(fPurchase.isAutoRenewing());
+                L.setField(-2, "isAutoRenewing");
+
+                L.pushBoolean(fPurchase.isAcknowledged());
+                L.setField(-2, "isAcknowledged");
+
+                L.pushBoolean(fState.equals("verificationFailed"));
+                L.setField(-2, "isVerified");
             }
 
             L.pushString(fState);

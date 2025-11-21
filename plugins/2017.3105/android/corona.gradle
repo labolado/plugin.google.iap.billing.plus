@@ -1,4 +1,9 @@
+android.defaultConfig {
+    minSdkVersion Math.max(minSdkVersion?.apiLevel ?: 16, 21)
+}
+ext["minSdkVersion"] = Math.max(ext.find("minSdkVersion")?:16, 21)
+
 dependencies {
-    implementation 'com.android.billingclient:billing:7.1.1'
+    implementation 'com.android.billingclient:billing:8.0.0'
     implementation 'com.google.android.gms:play-services-base:18.2.0'
 }
