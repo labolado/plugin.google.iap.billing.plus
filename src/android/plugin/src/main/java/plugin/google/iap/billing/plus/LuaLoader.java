@@ -198,10 +198,9 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
 
     @Override
     public void onBillingServiceDisconnected() {
-        fSetupSuccessful = false;
-        fIsConnecting = false;
-        // connect(false);
-        Log.d("Corona", "Billing client disconnected.");
+        // Automatic reconnection is triggered by the next BillingClient API call.
+        // Keep the successful setup state so that call is not blocked by initSuccessful().
+        Log.d("Corona", "Billing client disconnected; it will reconnect on the next billing request.");
     }
 
     @Override
@@ -327,8 +326,9 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
                             .enablePrepaidPlans()
                             .build();
                     fBillingClient = BillingClient.newBuilder(activity)
-                            .enablePendingPurchases(pendingPurchasesParams)
                             .setListener(this)
+                            .enablePendingPurchases(pendingPurchasesParams)
+                            .enableAutoServiceReconnection()
                             .build();
                 }
                 fBillingClient.startConnection(this);
