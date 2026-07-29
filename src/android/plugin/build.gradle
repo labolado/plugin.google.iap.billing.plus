@@ -71,6 +71,7 @@ assemble.finalizedBy(exportPluginJar)
 
 dependencies {
     implementation ':Corona@aar'
+    implementation platform('org.jetbrains.kotlin:kotlin-bom:1.8.22')
     implementation 'com.android.billingclient:billing:9.1.0'
     implementation 'com.google.android.gms:play-services-base:18.2.0'
 }
