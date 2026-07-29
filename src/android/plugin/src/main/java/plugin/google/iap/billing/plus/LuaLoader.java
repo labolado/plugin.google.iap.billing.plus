@@ -81,7 +81,6 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
     }};
 
     // private static final HashMap<String, ProductDetails> fCachedSKUDetails = new HashMap<>();
-    // private static final HashMap<String, SkuDetails> fCachedSKUDetailsOld = new HashMap<>();
     // private static int fNumReconnect = 0;
     // private static final int RECONNECT_LIMIT = 3;
     public static final int PLAY_SERVICES_RESOLUTION_REQUEST = 999;
