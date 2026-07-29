@@ -1,7 +1,7 @@
 android.defaultConfig {
-    minSdkVersion Math.max(minSdkVersion?.apiLevel ?: 16, 21)
+    minSdkVersion Math.max(minSdkVersion?.apiLevel ?: 16, 23)
 }
-ext["minSdkVersion"] = Math.max(ext.find("minSdkVersion")?:16, 21)
+ext["minSdkVersion"] = Math.max(ext.find("minSdkVersion")?:16, 23)
 
 dependencies {
     implementation 'com.android.billingclient:billing:9.1.0'
