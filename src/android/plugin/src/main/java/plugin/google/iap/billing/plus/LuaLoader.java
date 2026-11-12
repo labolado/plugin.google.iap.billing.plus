@@ -59,7 +59,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
     private CoronaRuntimeTaskDispatcher fDispatcher;
     private boolean fSetupSuccessful;
     private boolean fIsConnecting;
-    private boolean fIsProductDetailSupported;
+    // private boolean fIsProductDetailSupported;
     private String fLicenseKey;
     private BillingClient fBillingClient;
     private static final HashMap<String, ProductDetails> fCachedProductDetails = new HashMap<String, ProductDetails>();
@@ -136,7 +136,7 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
 
         fSetupSuccessful = false;
         fIsConnecting = false;
-        fIsProductDetailSupported = false;
+        // fIsProductDetailSupported = false;
 
         // Add functions to library
         NamedJavaFunction[] luaFunctions = new NamedJavaFunction[]{
@@ -186,9 +186,9 @@ public class LuaLoader implements JavaFunction, CoronaRuntimeListener, Purchases
             fSetupSuccessful = true;
         }
         fIsConnecting = false;
-        BillingResult testResult = fBillingClient.isFeatureSupported(BillingClient.FeatureType.PRODUCT_DETAILS);
-        fIsProductDetailSupported = testResult.getResponseCode() == BillingResponseCode.OK;
-        Log.d("Corona", "isFeatureSupported: code = " + testResult.getResponseCode() + ", msg = " + testResult.getDebugMessage() );
+        // BillingResult testResult = fBillingClient.isFeatureSupported(BillingClient.FeatureType.PRODUCT_DETAILS);
+        // fIsProductDetailSupported = testResult.getResponseCode() == BillingResponseCode.OK;
+        // Log.d("Corona", "isFeatureSupported: code = " + testResult.getResponseCode() + ", msg = " + testResult.getDebugMessage() );
 
         if (fListener != CoronaLua.REFNIL) {
             InitRuntimeTask task = new InitRuntimeTask(billingResult, fListener, fLibRef);
